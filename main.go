@@ -81,7 +81,35 @@ func main() {
 			}
 
 			// Write the row to the stream writer at the correct position.
-			cell, _ := excelize.CoordinatesToCellName(1, totalRowCount)
+			// Excel has a limit of 1,048,576 rows per sheet
+			const maxRowsPerSheet = 1048575 // Using slightly less than the maximum for safety
+
+			// Calculate which sheet this row should go to
+			sheetIndex := totalRowCount / maxRowsPerSheet
+			sheetName := fmt.Sprintf("Sheet%d", sheetIndex+1)
+
+			// Check if we need to create a new sheet and a new stream writer
+			if totalRowCount%maxRowsPerSheet == 1 && totalRowCount > 1 {
+				// Create a new sheet for the overflow
+				combinedFile.NewSheet(sheetName)
+
+				// Close current stream writer and create a new one
+				if err := streamWriter.Flush(); err != nil {
+					log.Fatal(err)
+				}
+
+				streamWriter, err = combinedFile.NewStreamWriter(sheetName)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				log.Printf("Created new sheet: %s", sheetName)
+			}
+
+			// Calculate row position within the current sheet
+			rowInSheet := (totalRowCount-1)%maxRowsPerSheet + 1
+			cell, _ := excelize.CoordinatesToCellName(1, rowInSheet)
+
 			if err := streamWriter.SetRow(cell, interfaceRow); err != nil {
 				log.Fatal(err)
 			}
