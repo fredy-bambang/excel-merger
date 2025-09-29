@@ -11,4 +11,7 @@ use with your own risk.
 go run main.go file1.xlsx file2.xlsx
 ```
 
-
+cara compile ke excel 
+```shell
+go build -o excel-merger.exe
+```
